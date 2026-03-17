@@ -1,200 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Threat Watch</title>
-  <style>
-    * { box-sizing: border-box; }
+const vendors = [
+  "Microsoft",
+  "Lenovo",
+  "SonicWall",
+  "Dell",
+  "Meraki",
+  "Cisco",
+  "Aruba",
+  "HPE"
+];
 
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: transparent;
-      color: #fff;
+const feedEl = document.getElementById("feed");
+
+fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.exploit-db.com/rss.xml")
+  .then(res => res.json())
+  .then(data => {
+
+    const items = data.items.filter(item =>
+      vendors.some(v =>
+        item.title.toLowerCase().includes(v.toLowerCase())
+      )
+    ).slice(0,6);
+
+    if(items.length === 0){
+      feedEl.innerHTML = "No matching vendor exploits found.";
+      return;
     }
 
-    .widget {
-      height: 360px;
-      width: 100%;
-      overflow-y: auto;
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      padding: 14px;
-    }
-
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      position: sticky;
-      top: 0;
-      background: rgba(10,10,10,0.65);
-      backdrop-filter: blur(8px);
-      padding-bottom: 8px;
-    }
-
-    .title {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-    }
-
-    .sub {
-      font-size: 11px;
-      color: #b8b8b8;
-    }
-
-    .item {
-      padding: 10px 0;
-      border-top: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .item:first-of-type {
-      border-top: none;
-    }
-
-    .badge {
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 700;
-      padding: 3px 7px;
-      border-radius: 999px;
-      margin-bottom: 6px;
-      background: rgba(239,68,68,0.16);
-      border: 1px solid rgba(239,68,68,0.35);
-    }
-
-    .headline {
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.35;
-      margin-bottom: 5px;
-    }
-
-    .meta {
-      font-size: 11px;
-      color: #b8b8b8;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    .loading, .empty, .error {
-      font-size: 13px;
-      color: #d0d0d0;
-      padding: 8px 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="widget">
-    <div class="header">
-      <div>
-        <div class="title">Threat Watch</div>
-        <div class="sub">Filtered exploited vulnerabilities</div>
+    feedEl.innerHTML = items.map(item => `
+      <div class="item">
+        <div class="badge">Exploit</div>
+        <div class="headline">
+          <a href="${item.link}" target="_blank">
+            ${item.title}
+          </a>
+        </div>
+        <div class="meta">
+          Exploit-DB • ${new Date(item.pubDate).toLocaleDateString()}
+        </div>
       </div>
-      <div class="sub" id="updated">Loading...</div>
-    </div>
+    `).join("");
 
-    <div id="feed" class="loading">Loading threat feed...</div>
-  </div>
-
-  <script>
-    const vendors = [
-      "Microsoft",
-      "Lenovo",
-      "SonicWall",
-      "Dell",
-      "Meraki",
-      "Cisco",
-      "Aruba",
-      "HPE",
-      "Hewlett Packard"
-    ];
-
-    const feedEl = document.getElementById("feed");
-    const updatedEl = document.getElementById("updated");
-
-    function esc(text) {
-      return String(text || "").replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-      }[m]));
-    }
-
-    function matchesVendor(vuln) {
-      const haystack = [
-        vuln.vendorProject,
-        vuln.product,
-        vuln.vulnerabilityName,
-        vuln.shortDescription
-      ].join(" ").toLowerCase();
-
-      return vendors.some(v => haystack.includes(v.toLowerCase()));
-    }
-
-    function severityFromText(text) {
-      const t = (text || "").toLowerCase();
-      if (t.includes("remote code execution") || t.includes("auth bypass") || t.includes("authentication bypass")) return "Critical";
-      if (t.includes("privilege escalation") || t.includes("command injection") || t.includes("sql injection")) return "High";
-      return "Alert";
-    }
-
-    async function loadFeed() {
-      try {
-        const url = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json";
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("Feed request failed");
-
-        const data = await res.json();
-        const items = (data.vulnerabilities || [])
-          .filter(matchesVendor)
-          .sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded))
-          .slice(0, 8);
-
-        updatedEl.textContent = "Updated now";
-
-        if (!items.length) {
-          feedEl.className = "empty";
-          feedEl.textContent = "No matching vendor items found.";
-          return;
-        }
-
-        feedEl.className = "";
-        feedEl.innerHTML = items.map(item => {
-          const severity = severityFromText(item.vulnerabilityName + " " + item.shortDescription);
-          const searchUrl = `https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=${encodeURIComponent(item.cveID || item.vulnerabilityName || "")}`;
-
-          return `
-            <div class="item">
-              <div class="badge">${esc(severity)}</div>
-              <div class="headline">
-                <a href="${searchUrl}" target="_blank" rel="noopener noreferrer">
-                  ${esc(item.vendorProject)} ${esc(item.product)} — ${esc(item.vulnerabilityName)}
-                </a>
-              </div>
-              <div class="meta">
-                ${esc(item.cveID || "No CVE")} • Added ${esc(item.dateAdded || "")}
-              </div>
-            </div>
-          `;
-        }).join("");
-      } catch (err) {
-        feedEl.className = "error";
-        feedEl.textContent = "Could not load the threat feed.";
-        updatedEl.textContent = "Error";
-        console.error(err);
-      }
-    }
-
-    loadFeed();
-    setInterval(loadFeed, 1000 * 60 * 30);
-  </script>
-</body>
-</html>
+  })
+  .catch(() => {
+    feedEl.innerHTML = "Could not load threat feed.";
+  });
