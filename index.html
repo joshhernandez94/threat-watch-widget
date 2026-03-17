@@ -1,462 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Threat Watch</title>
-  <style>
-    * { box-sizing: border-box; }
+<meta charset="UTF-8">
+<title>Threat Watch</title>
 
-    :root{
-      --bg: rgba(255,255,255,0.05);
-      --bg-strong: rgba(255,255,255,0.08);
-      --border: rgba(255,255,255,0.12);
-      --border-soft: rgba(255,255,255,0.08);
-      --text: #ffffff;
-      --muted: #b7bcc7;
-      --muted-2: #8d94a3;
-      --shadow: 0 10px 30px rgba(0,0,0,0.28);
-      --critical-bg: rgba(239,68,68,0.16);
-      --critical-border: rgba(239,68,68,0.38);
-      --high-bg: rgba(245,158,11,0.16);
-      --high-border: rgba(245,158,11,0.38);
-      --alert-bg: rgba(96,165,250,0.16);
-      --alert-border: rgba(96,165,250,0.38);
-      --accent: #22c55e;
-    }
+<style>
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: transparent;
-      font-family: "Segoe UI", Arial, Helvetica, sans-serif;
-      color: var(--text);
-      height: 100%;
-      overflow: hidden;
-    }
+*{box-sizing:border-box}
 
-    body {
-      padding: 0;
-    }
+body{
+margin:0;
+font-family:Segoe UI,Arial;
+background:transparent;
+color:white;
+}
 
-    .widget {
-      width: 100%;
-      height: 360px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      box-shadow: var(--shadow);
-      padding: 14px 14px 10px 14px;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255,255,255,0.2) transparent;
-    }
+.widget{
+height:360px;
+overflow-y:auto;
+border-radius:14px;
+border:1px solid rgba(255,255,255,.12);
+background:rgba(255,255,255,.05);
+backdrop-filter:blur(10px);
+padding:14px;
+}
 
-    .widget::-webkit-scrollbar {
-      width: 8px;
-    }
+.header{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+}
 
-    .widget::-webkit-scrollbar-track {
-      background: transparent;
-    }
+.title{
+font-size:18px;
+font-weight:700;
+}
 
-    .widget::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.16);
-      border-radius: 999px;
-    }
+.sub{
+font-size:12px;
+color:#a7a7a7;
+}
 
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
-      padding-bottom: 12px;
-      margin-bottom: 8px;
-      background: linear-gradient(180deg, rgba(9,10,14,0.88), rgba(9,10,14,0.62));
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
+.item{
+display:flex;
+gap:10px;
+padding:10px;
+border-radius:10px;
+border:1px solid rgba(255,255,255,.06);
+margin-bottom:8px;
+background:rgba(255,255,255,.03);
+}
 
-    .title-wrap {
-      min-width: 0;
-    }
+.item:hover{
+background:rgba(255,255,255,.06);
+}
 
-    .title-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+.icon{
+width:34px;
+height:34px;
+border-radius:8px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:rgba(255,255,255,.08);
+font-size:11px;
+font-weight:700;
+}
 
-    .title-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 12px rgba(34,197,94,0.75);
-      flex: 0 0 auto;
-      margin-top: 1px;
-    }
+.content{
+flex:1;
+}
 
-    .title {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.2px;
-      line-height: 1.2;
-    }
+.badge{
+font-size:10px;
+padding:3px 6px;
+border-radius:999px;
+margin-bottom:5px;
+display:inline-block;
+}
 
-    .sub {
-      margin-top: 3px;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.3;
-    }
+.critical{
+background:rgba(239,68,68,.18);
+border:1px solid rgba(239,68,68,.4);
+}
 
-    .status {
-      flex: 0 0 auto;
-      font-size: 11px;
-      color: var(--muted);
-      padding: 5px 9px;
-      border-radius: 999px;
-      border: 1px solid var(--border-soft);
-      background: rgba(255,255,255,0.04);
-      white-space: nowrap;
-    }
+.high{
+background:rgba(245,158,11,.18);
+border:1px solid rgba(245,158,11,.4);
+}
 
-    .feed {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+.alert{
+background:rgba(96,165,250,.18);
+border:1px solid rgba(96,165,250,.4);
+}
 
-    .item {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      padding: 10px;
-      border: 1px solid var(--border-soft);
-      border-radius: 14px;
-      background: rgba(255,255,255,0.03);
-      transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
-    }
+.headline{
+font-size:13px;
+font-weight:600;
+margin-bottom:4px;
+}
 
-    .item:hover {
-      transform: translateY(-1px);
-      border-color: rgba(255,255,255,0.16);
-      background: rgba(255,255,255,0.05);
-    }
+.meta{
+font-size:11px;
+color:#a7a7a7;
+}
 
-    .icon-wrap {
-      width: 38px;
-      height: 38px;
-      min-width: 38px;
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.09);
-      background: rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+.loading,.empty,.error{
+font-size:13px;
+color:#aaa;
+}
 
-    .icon-wrap img {
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-      display: block;
-    }
-
-    .icon-fallback {
-      font-size: 12px;
-      font-weight: 700;
-      color: #fff;
-      opacity: 0.88;
-    }
-
-    .content {
-      min-width: 0;
-      flex: 1 1 auto;
-    }
-
-    .topline {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-      flex-wrap: wrap;
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      text-transform: uppercase;
-      border: 1px solid transparent;
-    }
-
-    .badge.critical {
-      background: var(--critical-bg);
-      border-color: var(--critical-border);
-    }
-
-    .badge.high {
-      background: var(--high-bg);
-      border-color: var(--high-border);
-    }
-
-    .badge.alert {
-      background: var(--alert-bg);
-      border-color: var(--alert-border);
-    }
-
-    .vendor {
-      font-size: 11px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .headline {
-      margin: 0 0 6px 0;
-      font-size: 13px;
-      font-weight: 600;
-      line-height: 1.38;
-      color: var(--text);
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .headline a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    .headline a:hover {
-      text-decoration: underline;
-    }
-
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      font-size: 11px;
-      color: var(--muted-2);
-    }
-
-    .dot {
-      opacity: 0.5;
-    }
-
-    .loading, .empty, .error {
-      font-size: 13px;
-      color: var(--muted);
-      padding: 8px 2px;
-    }
-
-    .footer {
-      margin-top: 12px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(255,255,255,0.06);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      font-size: 11px;
-      color: var(--muted-2);
-    }
-
-    .footer a {
-      color: var(--muted);
-      text-decoration: none;
-    }
-
-    .footer a:hover {
-      text-decoration: underline;
-    }
-  </style>
+</style>
 </head>
+
 <body>
-  <div class="widget">
-    <div class="header">
-      <div class="title-wrap">
-        <div class="title-row">
-          <div class="title-dot"></div>
-          <div class="title">Threat Watch</div>
-        </div>
-        <div class="sub">Filtered vendor-specific exploit activity</div>
-      </div>
-      <div class="status" id="updated">Loading...</div>
-    </div>
 
-    <div id="feed" class="feed">
-      <div class="loading">Loading threat feed...</div>
-    </div>
+<div class="widget">
 
-    <div class="footer">
-      <span>Sources filtered for your vendor list</span>
-      <a href="https://www.exploit-db.com/" target="_blank" rel="noopener noreferrer">Open Exploit-DB</a>
-    </div>
-  </div>
+<div class="header">
+<div>
+<div class="title">Threat Watch</div>
+<div class="sub">Vendor-related exploit activity</div>
+</div>
+</div>
 
-  <script>
-    const vendors = [
-      "Microsoft",
-      "Lenovo",
-      "SonicWall",
-      "Dell",
-      "Meraki",
-      "Cisco",
-      "Aruba",
-      "HPE",
-      "Hewlett Packard"
-    ];
+<div id="feed" class="loading">Loading threat feed...</div>
 
-    const vendorIcons = {
-      microsoft: "https://cdn.simpleicons.org/microsoft/ffffff",
-      lenovo: "https://cdn.simpleicons.org/lenovo/ffffff",
-      sonicwall: "https://www.sonicwall.com/favicon.ico",
-      dell: "https://cdn.simpleicons.org/dell/ffffff",
-      meraki: "https://meraki.cisco.com/wp-content/themes/meraki/images/favicon/favicon-32x32.png",
-      cisco: "https://cdn.simpleicons.org/cisco/ffffff",
-      aruba: "https://www.arubanetworks.com/wp-content/themes/aruba/img/favicon.ico",
-      hpe: "https://cdn.simpleicons.org/hewlettpackardenterprise/ffffff",
-      "hewlett packard": "https://cdn.simpleicons.org/hewlettpackardenterprise/ffffff"
-    };
+</div>
 
-    const feedEl = document.getElementById("feed");
-    const updatedEl = document.getElementById("updated");
+<script>
 
-    function escapeHtml(text) {
-      return String(text || "").replace(/[&<>"']/g, function (m) {
-        return ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          "\"": "&quot;",
-          "'": "&#39;"
-        })[m];
-      });
-    }
+const vendorKeywords = {
 
-    function getMatchedVendor(title) {
-      const lower = (title || "").toLowerCase();
-      return vendors.find(v => lower.includes(v.toLowerCase())) || "Alert";
-    }
+Microsoft:["microsoft","windows","office","exchange","sharepoint","azure"],
 
-    function getVendorIcon(vendor) {
-      const key = (vendor || "").toLowerCase();
-      return vendorIcons[key] || "";
-    }
+Cisco:["cisco","ios","asa","nexus","firepower","meraki"],
 
-    function getVendorInitials(vendor) {
-      const parts = (vendor || "AL").split(/\s+/).filter(Boolean);
-      return parts.slice(0, 2).map(p => p[0]).join("").toUpperCase();
-    }
+Lenovo:["lenovo","thinkpad"],
 
-    function getSeverity(title) {
-      const t = (title || "").toLowerCase();
+Dell:["dell","idrac","poweredge"],
 
-      if (
-        t.includes("remote code execution") ||
-        t.includes("rce") ||
-        t.includes("authentication bypass") ||
-        t.includes("auth bypass") ||
-        t.includes("zero-day") ||
-        t.includes("0day") ||
-        t.includes("actively exploited")
-      ) {
-        return { label: "Critical", cls: "critical" };
-      }
+SonicWall:["sonicwall"],
 
-      if (
-        t.includes("privilege escalation") ||
-        t.includes("sql injection") ||
-        t.includes("command injection") ||
-        t.includes("arbitrary file upload") ||
-        t.includes("bypass") ||
-        t.includes("exploit")
-      ) {
-        return { label: "High", cls: "high" };
-      }
+Aruba:["aruba","instantos"],
 
-      return { label: "Alert", cls: "alert" };
-    }
+HPE:["hpe","hewlett","proliant"]
 
-    async function loadThreatFeed() {
-      try {
-        const response = await fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.exploit-db.com/rss.xml");
-        const data = await response.json();
+};
 
-        const items = (data.items || [])
-          .filter(item =>
-            vendors.some(v =>
-              (item.title || "").toLowerCase().includes(v.toLowerCase())
-            )
-          )
-          .slice(0, 8);
+function detectVendor(title){
 
-        updatedEl.textContent = "Live";
+const t = title.toLowerCase();
 
-        if (!items.length) {
-          feedEl.innerHTML = '<div class="empty">No matching vendor exploits found right now.</div>';
-          return;
-        }
+for(const vendor in vendorKeywords){
 
-        feedEl.innerHTML = items.map(item => {
-          const vendor = getMatchedVendor(item.title);
-          const severity = getSeverity(item.title);
-          const icon = getVendorIcon(vendor);
-          const pubDate = item.pubDate ? new Date(item.pubDate).toLocaleDateString() : "Recent";
+if(vendorKeywords[vendor].some(k=>t.includes(k))){
 
-          return `
-            <div class="item">
-              <div class="icon-wrap">
-                ${
-                  icon
-                    ? `<img src="${icon}" alt="${escapeHtml(vendor)} icon" onerror="this.parentNode.innerHTML='<div class=&quot;icon-fallback&quot;>${escapeHtml(getVendorInitials(vendor))}</div>';">`
-                    : `<div class="icon-fallback">${escapeHtml(getVendorInitials(vendor))}</div>`
-                }
-              </div>
-              <div class="content">
-                <div class="topline">
-                  <span class="badge ${severity.cls}">${escapeHtml(severity.label)}</span>
-                  <span class="vendor">${escapeHtml(vendor)}</span>
-                </div>
-                <div class="headline">
-                  <a href="${item.link}" target="_blank" rel="noopener noreferrer">
-                    ${escapeHtml(item.title)}
-                  </a>
-                </div>
-                <div class="meta">
-                  <span>Exploit-DB</span>
-                  <span class="dot">•</span>
-                  <span>${escapeHtml(pubDate)}</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join("");
-      } catch (err) {
-        updatedEl.textContent = "Error";
-        feedEl.innerHTML = '<div class="error">Could not load threat feed.</div>';
-        console.error(err);
-      }
-    }
+return vendor;
 
-    loadThreatFeed();
-    setInterval(loadThreatFeed, 1000 * 60 * 30);
-  </script>
+}
+
+}
+
+return null;
+
+}
+
+function severity(title){
+
+const t=title.toLowerCase();
+
+if(t.includes("rce")||t.includes("remote code execution")||t.includes("auth bypass"))
+return["Critical","critical"];
+
+if(t.includes("privilege escalation")||t.includes("sql injection")||t.includes("command injection"))
+return["High","high"];
+
+return["Alert","alert"];
+
+}
+
+fetch("https://api.rss2json.com/v1/api.json?rss_url=https://www.exploit-db.com/rss.xml")
+
+.then(r=>r.json())
+
+.then(data=>{
+
+const feed=document.getElementById("feed");
+
+const items=data.items
+.map(i=>{
+const vendor=detectVendor(i.title);
+return vendor?{...i,vendor}:null;
+})
+.filter(Boolean)
+.slice(0,8);
+
+if(!items.length){
+
+feed.className="empty";
+feed.innerHTML="No vendor exploits currently detected.";
+
+return;
+}
+
+feed.className="";
+
+feed.innerHTML=items.map(item=>{
+
+const sev=severity(item.title);
+
+return `
+
+<div class="item">
+
+<div class="icon">${item.vendor.substring(0,2)}</div>
+
+<div class="content">
+
+<div class="badge ${sev[1]}">${sev[0]}</div>
+
+<div class="headline">
+
+<a href="${item.link}" target="_blank">
+
+${item.title}
+
+</a>
+
+</div>
+
+<div class="meta">
+
+${item.vendor} • Exploit-DB • ${new Date(item.pubDate).toLocaleDateString()}
+
+</div>
+
+</div>
+
+</div>
+
+`;
+
+}).join("");
+
+})
+
+.catch(()=>{
+
+document.getElementById("feed").innerHTML="Could not load threat feed.";
+
+});
+
+</script>
+
 </body>
 </html>
