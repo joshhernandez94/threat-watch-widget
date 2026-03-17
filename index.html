@@ -8,14 +8,15 @@
     * { box-sizing: border-box; }
 
     :root{
-      --bg: rgba(255,255,255,0.05);
-      --bg-2: rgba(255,255,255,0.03);
-      --bg-3: rgba(255,255,255,0.07);
+      --bg: rgba(18,20,26,0.72);
+      --bg-2: rgba(255,255,255,0.035);
+      --bg-3: rgba(255,255,255,0.06);
       --border: rgba(255,255,255,0.12);
       --border-soft: rgba(255,255,255,0.08);
       --text: #ffffff;
       --muted: #b7bcc7;
-      --muted-2: #9097a5;
+      --muted-2: #949baa;
+      --headline: #ffffff;
       --critical-bg: rgba(239,68,68,0.16);
       --critical-border: rgba(239,68,68,0.38);
       --high-bg: rgba(245,158,11,0.16);
@@ -40,7 +41,7 @@
       overflow-y: auto;
       border: 1px solid var(--border);
       border-radius: 18px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      background: linear-gradient(180deg, rgba(23,25,32,0.9), rgba(15,17,22,0.82));
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
       box-shadow: var(--shadow);
@@ -65,7 +66,7 @@
       gap: 12px;
       margin-bottom: 12px;
       padding-bottom: 10px;
-      background: linear-gradient(180deg, rgba(9,10,14,0.88), rgba(9,10,14,0.62));
+      background: linear-gradient(180deg, rgba(15,17,22,0.95), rgba(15,17,22,0.78));
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
@@ -93,6 +94,7 @@
       border: 1px solid var(--border-soft);
       background: rgba(255,255,255,0.04);
       white-space: nowrap;
+      text-align: right;
     }
 
     .feed {
@@ -114,7 +116,7 @@
 
     .item:hover {
       transform: translateY(-1px);
-      background: var(--bg);
+      background: var(--bg-3);
       border-color: rgba(255,255,255,0.16);
     }
 
@@ -125,7 +127,7 @@
       border-radius: 12px;
       overflow: hidden;
       border: 1px solid rgba(255,255,255,0.09);
-      background: var(--bg-3);
+      background: rgba(255,255,255,0.06);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -196,15 +198,14 @@
       margin: 0 0 6px 0;
       font-size: 13px;
       font-weight: 600;
-      line-height: 1.38;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      line-height: 1.4;
+      color: var(--headline);
+      display: block;
+      word-break: break-word;
     }
 
     .headline a {
-      color: inherit;
+      color: var(--headline);
       text-decoration: none;
     }
 
@@ -266,12 +267,15 @@
     </div>
 
     <div class="footer">
-      <span>Microsoft + Cisco + vendor keyword matching</span>
+      <span id="footerSummary">Balancing vendor results</span>
       <a href="https://www.exploit-db.com/" target="_blank" rel="noopener noreferrer">Open Exploit-DB</a>
     </div>
   </div>
 
   <script>
+    const MAX_TOTAL_ITEMS = 10;
+    const MAX_PER_VENDOR = 2;
+
     const FEEDS = [
       {
         name: "Microsoft",
@@ -282,7 +286,7 @@
       {
         name: "Cisco",
         vendor: "Cisco",
-        url: "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent("https://sec.cloudapps.cisco.com/security/center/psirtrss10/CiscoSecurityAdvisory.xml"),
+        url: "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent("https://sec.cloudapps.cisco.com/security/center/psirtrss20/CiscoSecurityAdvisory.xml"),
         sourceLabel: "Cisco"
       },
       {
@@ -295,13 +299,21 @@
 
     const vendorKeywords = {
       Microsoft: ["microsoft", "windows", "office", "exchange", "sharepoint", "azure", "outlook", "word", "excel", "teams"],
-      Cisco: ["cisco", "ios xe", "ios", "asa", "nexus", "firepower", "meraki", "catalyst", "webex"],
+      Cisco: ["cisco", "ios xe", "ios", "asa", "nexus", "firepower", "meraki", "catalyst", "webex", "ise"],
       SonicWall: ["sonicwall", "sonicos", "sma", "netextender"],
       Dell: ["dell", "idrac", "poweredge", "secure connect gateway"],
       Lenovo: ["lenovo", "thinkpad", "thinkcentre", "bios", "system update"],
       Aruba: ["aruba", "instantos", "arubaos", "aruba central"],
       HPE: ["hpe", "hewlett packard", "proliant", "ilo"]
     };
+
+    const excludedKeywords = [
+      "wordpress",
+      "wp plugin",
+      "wp theme",
+      "woocommerce",
+      "elementor"
+    ];
 
     const vendorIcons = {
       microsoft: "https://cdn.simpleicons.org/microsoft/ffffff",
@@ -315,6 +327,7 @@
 
     const feedEl = document.getElementById("feed");
     const updatedEl = document.getElementById("updated");
+    const footerSummaryEl = document.getElementById("footerSummary");
 
     function escapeHtml(text) {
       return String(text || "").replace(/[&<>"']/g, m => ({
@@ -324,6 +337,18 @@
         "\"": "&quot;",
         "'": "&#39;"
       }[m]));
+    }
+
+    function stripHtml(html) {
+      return String(html || "")
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function isExcluded(title = "", description = "") {
+      const haystack = `${title} ${description}`.toLowerCase();
+      return excludedKeywords.some(k => haystack.includes(k));
     }
 
     function detectVendor(title = "", description = "") {
@@ -374,20 +399,39 @@
       return { label: "Alert", cls: "alert" };
     }
 
-    function normalizeItem(item, forcedVendor, sourceLabel) {
-      const title = item.title || "";
-      const description = item.description || item.content || "";
-      const vendor = forcedVendor || detectVendor(title, description);
+    function buildHeadline(item) {
+      const cleanTitle = stripHtml(item.title || "");
+      const cleanDesc = stripHtml(item.description || item.content || "");
 
+      if (cleanTitle && cleanTitle.length > 5) return cleanTitle;
+      if (cleanDesc && cleanDesc.length > 12) {
+        return cleanDesc.slice(0, 140) + (cleanDesc.length > 140 ? "..." : "");
+      }
+      return "Open advisory details";
+    }
+
+    function normalizeItem(item, forcedVendor, sourceLabel) {
+      const rawTitle = item.title || "";
+      const rawDescription = item.description || item.content || "";
+
+      if (isExcluded(rawTitle, rawDescription)) return null;
+
+      const vendor = forcedVendor || detectVendor(rawTitle, rawDescription);
       if (!vendor) return null;
+
+      const title = buildHeadline(item);
+
+      if (isExcluded(title, rawDescription)) return null;
 
       return {
         vendor,
         title,
+        rawTitle,
+        description: rawDescription,
         link: item.link || "#",
         pubDate: item.pubDate || item.isoDate || "",
         source: sourceLabel,
-        severity: getSeverity(title, description)
+        severity: getSeverity(rawTitle, rawDescription)
       };
     }
 
@@ -396,23 +440,45 @@
         const res = await fetch(feed.url);
         const data = await res.json();
         const items = Array.isArray(data.items) ? data.items : [];
-        return items
-          .map(item => normalizeItem(item, feed.vendor, feed.sourceLabel))
-          .filter(Boolean);
+        return {
+          feed: feed.name,
+          normalized: items
+            .map(item => normalizeItem(item, feed.vendor, feed.sourceLabel))
+            .filter(Boolean)
+        };
       } catch (e) {
         console.error("Feed failed:", feed.name, e);
-        return [];
+        return {
+          feed: feed.name,
+          normalized: []
+        };
       }
     }
 
     function dedupe(items) {
       const seen = new Set();
       return items.filter(item => {
-        const key = `${item.vendor}|${item.title}`.toLowerCase();
+        const key = `${item.vendor}|${item.title}|${item.source}`.toLowerCase();
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
+    }
+
+    function balanceVendors(items, maxPerVendor, maxTotal) {
+      const sorted = [...items].sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0));
+      const vendorCounts = {};
+      const chosen = [];
+
+      for (const item of sorted) {
+        const count = vendorCounts[item.vendor] || 0;
+        if (count >= maxPerVendor) continue;
+        chosen.push(item);
+        vendorCounts[item.vendor] = count + 1;
+        if (chosen.length >= maxTotal) break;
+      }
+
+      return chosen;
     }
 
     async function loadThreatFeed() {
@@ -420,13 +486,21 @@
       feedEl.innerHTML = '<div class="loading">Loading threat feed...</div>';
 
       const results = await Promise.all(FEEDS.map(fetchFeed));
-      let items = results.flat();
 
-      items = dedupe(items)
-        .sort((a, b) => new Date(b.pubDate || 0) - new Date(a.pubDate || 0))
-        .slice(0, 10);
+      let items = results.flatMap(r => r.normalized);
+      items = dedupe(items);
+      items = balanceVendors(items, MAX_PER_VENDOR, MAX_TOTAL_ITEMS);
 
-      updatedEl.textContent = "Live";
+      const vendorBreakdown = {};
+      for (const item of items) {
+        vendorBreakdown[item.vendor] = (vendorBreakdown[item.vendor] || 0) + 1;
+      }
+
+      footerSummaryEl.textContent = Object.entries(vendorBreakdown)
+        .map(([vendor, count]) => `${vendor}: ${count}`)
+        .join(" | ") || "No items";
+
+      updatedEl.textContent = `${items.length} items`;
 
       if (!items.length) {
         feedEl.innerHTML = '<div class="empty">No matching vendor items found.</div>';
